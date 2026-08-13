@@ -8,21 +8,10 @@ use App\Models\Admin;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-
+use Illuminate\Support\Facades\Cache;
 
 class AdminAuthController extends Controller
 {
-
-    public function showLoginForm()
-    {
-        return view('admin.auth.login');
-    }
-
-    public function showRegisterForm()
-    {
-        return view('admin.auth.register');
-    }
-
     public function register(Request $request)
     {
         $request->validate([
@@ -39,30 +28,65 @@ class AdminAuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        Auth::guard('admin')->login($admin);
-
-        // OTP setup
+        // Generate OTP
         $otp = rand(100000, 999999);
-        session(['admin_otp' => $otp, 'admin_otp_expire' => now()->addMinutes(5)]);
+        
+        // Store in cache for 5 minutes using email as key
+        Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
+        
+        // Send OTP email
         Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
 
-        return redirect()->route('admin.otp.form');
-    }
-
-    public function showOtpForm()
-    {
-        return view('admin.auth.verify-otp');
+        return response()->json([
+            'message' => 'Admin registered successfully. Please verify OTP sent to your email.',
+            'email' => $admin->email
+        ], 201);
     }
 
     public function verifyOtp(Request $request)
     {
-        $request->validate(['otp' => 'required']);
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required|string'
+        ]);
 
-        if ($request->otp == session('admin_otp') && now()->lt(session('admin_otp_expire'))) {
-            return redirect()->route('admin.dashboard');
+        $cachedOtp = Cache::get('admin_otp_' . $request->email);
+
+        if ($cachedOtp && $cachedOtp == $request->otp) {
+            // OTP is valid
+            Cache::forget('admin_otp_' . $request->email);
+            
+            $admin = Admin::where('email', $request->email)->firstOrFail();
+            $token = $admin->createToken('admin_token')->plainTextToken;
+
+            return response()->json([
+                'message' => 'OTP verified successfully',
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'admin' => $admin
+            ]);
         }
 
-        return back()->withErrors(['otp' => 'Invalid or expired OTP.']);
+        return response()->json([
+            'message' => 'Invalid or expired OTP.'
+        ], 400);
+    }
+
+    public function resendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        
+        $admin = Admin::where('email', $request->email)->first();
+        if (!$admin) {
+            return response()->json(['message' => 'Admin not found.'], 404);
+        }
+
+        $otp = rand(100000, 999999);
+        Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
+        
+        Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+
+        return response()->json(['message' => 'OTP resent successfully.']);
     }
 
     public function login(Request $request)
@@ -72,16 +96,32 @@ class AdminAuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::guard('admin')->attempt($request->only('email', 'password'), $request->filled('remember'))) {
-            return redirect()->route('admin.dashboard');
+        $admin = Admin::where('email', $request->email)->first();
+
+        if (!$admin || !Hash::check($request->password, $admin->password)) {
+            return response()->json([
+                'message' => 'Invalid credentials.'
+            ], 401);
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials.']);
+        // Generate and send OTP upon valid password check
+        $otp = rand(100000, 999999);
+        Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
+        
+        Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+
+        return response()->json([
+            'message' => 'Credentials accepted. Please verify OTP sent to your email.',
+            'email' => $admin->email
+        ]);
     }
 
     public function logout(Request $request)
     {
-        Auth::guard('admin')->logout();
-        return redirect()->route('admin.login');
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Admin logged out successfully'
+        ]);
     }
 }

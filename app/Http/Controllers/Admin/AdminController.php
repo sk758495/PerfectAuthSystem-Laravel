@@ -7,8 +7,11 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
-        public function index()
+    public function index(Request $request)
     {
-        return view('admin.dashboard');
+        return response()->json([
+            'message' => 'Welcome to the Admin Dashboard',
+            'admin' => $request->user()
+        ]);
     }
 }
