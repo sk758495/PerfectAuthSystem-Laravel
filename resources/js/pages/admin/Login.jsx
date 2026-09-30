@@ -22,8 +22,15 @@ const AdminLogin = () => {
                 email,
                 password
             });
-            toast.info('Step 1 verified! Please enter your Admin OTP.');
-            navigate('/admin/verify-otp', { state: { email: response.data.email } });
+
+            if (response.data.requires_email_verification) {
+                toast.warning('Please enter the OTP verification code sent to your email.');
+                navigate('/admin/verify-otp', { state: { email: response.data.email } });
+            } else {
+                localStorage.setItem('admin_access_token', response.data.access_token);
+                toast.success('Admin authentication successful! Welcome.');
+                navigate('/admin/dashboard');
+            }
         } catch (err) {
             const msg = err.response?.data?.message || 'Admin authentication failed. Please check credentials.';
             toast.error(msg);

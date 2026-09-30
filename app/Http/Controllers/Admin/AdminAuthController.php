@@ -33,9 +33,14 @@ class AdminAuthController extends Controller
         
         // Store in cache for 5 minutes using email as key
         Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
+        \Log::info("Admin registration OTP generated for {$admin->email}: {$otp}");
         
         // Send OTP email
-        Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+        try {
+            Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send admin registration OTP email: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Admin registered successfully. Please verify OTP sent to your email.',
@@ -52,7 +57,7 @@ class AdminAuthController extends Controller
 
         $cachedOtp = Cache::get('admin_otp_' . $request->email);
 
-        if ($cachedOtp && $cachedOtp == $request->otp) {
+        if ($cachedOtp && (string)$cachedOtp === (string)$request->otp) {
             // OTP is valid
             Cache::forget('admin_otp_' . $request->email);
             
@@ -83,8 +88,13 @@ class AdminAuthController extends Controller
 
         $otp = rand(100000, 999999);
         Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
+        \Log::info("Resent Admin OTP for {$admin->email}: {$otp}");
         
-        Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+        try {
+            Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend admin OTP email: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'OTP resent successfully.']);
     }
@@ -104,15 +114,34 @@ class AdminAuthController extends Controller
             ], 401);
         }
 
-        // Generate and send OTP upon valid password check
-        $otp = rand(100000, 999999);
-        Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
-        
-        Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+        // Check if admin email is verified
+        if (is_null($admin->email_verified_at)) {
+            // Generate and send OTP for unverified admin accounts
+            $otp = rand(100000, 999999);
+            Cache::put('admin_otp_' . $admin->email, $otp, now()->addMinutes(5));
+            \Log::info("Admin OTP generated for {$admin->email}: {$otp}");
+            
+            try {
+                Mail::to($admin->email)->send(new \App\Mail\AdminOtpMail($otp));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send admin OTP email: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'message' => 'Admin email not verified. Please enter the OTP sent to your email.',
+                'requires_email_verification' => true,
+                'email' => $admin->email
+            ]);
+        }
+
+        // Verified / Seeded Admin gets direct access
+        $token = $admin->createToken('admin_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Credentials accepted. Please verify OTP sent to your email.',
-            'email' => $admin->email
+            'message' => 'Admin login successful',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'admin' => $admin
         ]);
     }
 
