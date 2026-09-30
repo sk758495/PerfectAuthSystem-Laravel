@@ -2,5 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-// This application is a pure API backend.
-// Web routes are not used. Frontend is served separately via Vite SPA.
+Route::get('/{any?}', function () {
+    return view('app');
+})->where('any', '.*');
+

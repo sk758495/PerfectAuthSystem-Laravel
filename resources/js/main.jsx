@@ -2,10 +2,12 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import '../css/app.css';
+import { ToastProvider } from './components/common/ToastContext';
 
 // User Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyOtp from './pages/VerifyOtp';
 import Dashboard from './pages/Dashboard';
 
 // Admin Pages
@@ -26,31 +28,34 @@ const AdminPrivateRoute = ({ children }) => {
 
 const App = () => {
     return (
-        <Router>
-            <Routes>
-                {/* User Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={
-                    <PrivateRoute>
-                        <Dashboard />
-                    </PrivateRoute>
-                } />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin/register" element={<AdminRegister />} />
-                <Route path="/admin/verify-otp" element={<AdminVerifyOtp />} />
-                <Route path="/admin/dashboard" element={
-                    <AdminPrivateRoute>
-                        <AdminDashboard />
-                    </AdminPrivateRoute>
-                } />
+        <ToastProvider>
+            <Router>
+                <Routes>
+                    {/* User Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/verify-otp" element={<VerifyOtp />} />
+                    <Route path="/dashboard" element={
+                        <PrivateRoute>
+                            <Dashboard />
+                        </PrivateRoute>
+                    } />
+                    
+                    {/* Admin Routes */}
+                    <Route path="/admin/login" element={<AdminLogin />} />
+                    <Route path="/admin/register" element={<AdminRegister />} />
+                    <Route path="/admin/verify-otp" element={<AdminVerifyOtp />} />
+                    <Route path="/admin/dashboard" element={
+                        <AdminPrivateRoute>
+                            <AdminDashboard />
+                        </AdminPrivateRoute>
+                    } />
 
-                {/* Default Redirect */}
-                <Route path="/" element={<Navigate to="/dashboard" />} />
-            </Routes>
-        </Router>
+                    {/* Default Redirect */}
+                    <Route path="/" element={<Navigate to="/dashboard" />} />
+                </Routes>
+            </Router>
+        </ToastProvider>
     );
 };
 
@@ -59,3 +64,4 @@ if (container) {
     const root = createRoot(container);
     root.render(<App />);
 }
+

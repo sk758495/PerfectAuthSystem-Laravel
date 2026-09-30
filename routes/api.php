@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\TwoFactorAuthController;
 
 // User Routes
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/otp/verify', [AuthController::class, 'verifyOtp']);
+Route::post('/otp/resend', [AuthController::class, 'resendOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login/2fa', [AuthController::class, 'verify2faLogin']);
 

@@ -1,88 +1,96 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { ShieldCheck, Mail, Lock, ArrowRight, KeyRound } from 'lucide-react';
+import AuthLayout from '../../components/layouts/AuthLayout';
+import Input from '../../components/common/Input';
+import Button from '../../components/common/Button';
+import { useToast } from '../../components/common/ToastContext';
 
 const AdminLogin = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const toast = useToast();
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
         try {
             const response = await axios.post('/api/admin/login', {
                 email,
                 password
             });
-            // Admin login requires OTP verification next.
-            // Navigate to OTP page and pass email in state.
+            toast.info('Step 1 verified! Please enter your Admin OTP.');
             navigate('/admin/verify-otp', { state: { email: response.data.email } });
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+            const msg = err.response?.data?.message || 'Admin authentication failed. Please check credentials.';
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8 bg-gray-800 p-10 rounded-xl shadow-2xl border border-gray-700">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-                        Admin Portal Login
-                    </h2>
+        <AuthLayout
+            title="Administrator Sign In"
+            subtitle="Access the management dashboard and system controls."
+            badgeText="Admin Portal"
+            isAdmin={true}
+        >
+            <form className="space-y-4" onSubmit={handleLogin}>
+                <div className="flex justify-center mb-2">
+                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                        <ShieldCheck className="w-6 h-6" />
+                    </div>
                 </div>
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                    {error && (
-                        <div className="bg-red-900/50 text-red-400 p-3 rounded-md text-sm text-center border border-red-800">
-                            {error}
-                        </div>
-                    )}
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-600 bg-gray-700 placeholder-gray-400 text-white rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Admin Email"
-                            />
-                        </div>
-                        <div>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-600 bg-gray-700 placeholder-gray-400 text-white rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Password"
-                            />
-                        </div>
-                    </div>
 
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-                        >
-                            {loading ? 'Authenticating...' : 'Sign in to Admin'}
-                        </button>
-                    </div>
-                </form>
-                <div className="text-center text-sm">
-                    <span className="text-gray-400">New administrator? </span>
-                    <Link to="/admin/register" className="font-medium text-blue-400 hover:text-blue-300">
-                        Register here
+                <Input
+                    label="Admin Email"
+                    name="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@perfectauth.io"
+                    icon={Mail}
+                    autoFocus
+                />
+
+                <Input
+                    label="Password"
+                    name="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    icon={Lock}
+                />
+
+                <div className="pt-2">
+                    <Button
+                        type="submit"
+                        loading={loading}
+                        className="w-full"
+                        size="lg"
+                        variant="primary"
+                        icon={ArrowRight}
+                        iconPosition="right"
+                    >
+                        {loading ? 'Signing in...' : 'Sign In as Admin'}
+                    </Button>
+                </div>
+
+                <div className="text-center text-xs text-slate-400 pt-2">
+                    <span>New administrator? </span>
+                    <Link to="/admin/register" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+                        Register admin account
                     </Link>
                 </div>
-            </div>
-        </div>
+            </form>
+        </AuthLayout>
     );
 };
 

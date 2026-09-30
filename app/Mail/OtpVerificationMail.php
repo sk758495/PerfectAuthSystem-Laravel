@@ -28,7 +28,8 @@ class OtpVerificationMail extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.otp-verification')
+        return $this->subject('Your Email Verification Code - PerfectAuth')
+                    ->view('emails.otp-verification')
                     ->with(['otp' => $this->otp]);
     }
 }

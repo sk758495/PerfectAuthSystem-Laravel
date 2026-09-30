@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (file_exists('C:/xampp/apache/bin/curl-ca-bundle.crt')) {
+            @ini_set('openssl.cafile', 'C:/xampp/apache/bin/curl-ca-bundle.crt');
+            @ini_set('curl.cainfo', 'C:/xampp/apache/bin/curl-ca-bundle.crt');
+        }
     }
 }

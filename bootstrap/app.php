@@ -1,5 +1,10 @@
 <?php
 
+if (file_exists('C:/xampp/apache/bin/curl-ca-bundle.crt')) {
+    @ini_set('openssl.cafile', 'C:/xampp/apache/bin/curl-ca-bundle.crt');
+    @ini_set('curl.cainfo', 'C:/xampp/apache/bin/curl-ca-bundle.crt');
+}
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
